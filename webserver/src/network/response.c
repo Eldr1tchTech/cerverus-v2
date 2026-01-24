@@ -1,6 +1,6 @@
 #include "response.h"
 
-#include "core/logger.h"
+#include "core/util/logger.h"
 #include "core/memory/cmem.h"
 
 #include <stdio.h>
@@ -20,8 +20,8 @@ char *serialize_http_version(http_version version)
 
 char *response_serialize(response *res)
 {
-    char *raw_res_stat_lin = cmem_alloc(memory_tag_response, 8192 * sizeof(char));
-    snprintf(raw_res_stat_lin, sizeof(raw_res_stat_lin),
+    char *raw_res = cmem_alloc(memory_tag_response, 8192 * sizeof(char));
+    snprintf(raw_res, 8192 * sizeof(char),
              "%s %i %s\r\n",
              serialize_http_version(res->status_line.version),
              res->status_line.status_code, res->status_line.reason_phrase);
@@ -29,15 +29,17 @@ char *response_serialize(response *res)
     char raw_header[521] = {0}; 
     for (size_t i = 0; i < res->headers.header_count; i++)
     {
-        snprintf(raw_header, 512, "%s: %s\r\n");
-        strcat(raw_res_stat_lin, raw_header);
+        snprintf(raw_header, 512, "%s: %s\r\n", res->headers.headers[i].name, res->headers.headers[i].value); 
+        strcat(raw_res, raw_header);
     }
+
+    strcat(raw_res, "\r\n");
 
     if (res->body.body_size != 0)
     {
-        strncat(raw_res_stat_lin, res->body.data, res->body.body_size);
-        strcat(raw_res_stat_lin, "\r\n");
+        strncat(raw_res, res->body.data, res->body.body_size);
+        strcat(raw_res, "\r\n");
     }
     
-    return raw_res_stat_lin;
+    return raw_res;
 }

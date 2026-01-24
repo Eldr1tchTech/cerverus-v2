@@ -1,7 +1,10 @@
 #include "router.h"
 
-#include "core/logger.h"
+#include "core/util/logger.h"
 #include "core/memory/cmem.h"
+#include "core/util/profiler.h"
+
+#include <string.h>
 
 router* router_create(route_callback default_route) {
     router* r = cmem_alloc(memory_tag_router, sizeof(router));
@@ -23,12 +26,17 @@ void router_handle_route(router* r, request* req, response* res) {
     route* routes_data = (route*)r->routes->data;
     for (int i = 0; i < r->routes->length; i++)
     {
+        LOG_DEBUG("attempting to match route");
         route rt = routes_data[i];
         if (rt.method == req->request_line.method)
         {
-            if (rt.URI == req->request_line.URI)
+            LOG_DEBUG("method matches.");
+            if (strcmp(rt.URI, req->request_line.URI) == 0)
             {
-                rt.callback(req, res);
+                LOG_DEBUG("URI matches.");
+
+                profile_operation("callback", rt.callback(req, res));
+
                 return;
             }
         }

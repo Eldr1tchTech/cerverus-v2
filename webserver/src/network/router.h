@@ -24,3 +24,5 @@ router* router_create(route_callback default_route);
 void router_handle_route(router* r, request* req, response* res);
 
 void router_destroy(router* r);
+
+// #define 

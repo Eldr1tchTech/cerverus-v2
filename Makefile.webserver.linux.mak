@@ -4,9 +4,9 @@ OBJ_DIR := obj
 
 ASSEMBLY := webserver
 EXTENSION := .so
-COMPILER_FLAGS := -std=c23 -g -fdeclspec -fPIC
+COMPILER_FLAGS := -std=c23 -g -fdeclspec -fPIC -D_POSIX_C_SOURCE=200809L
 INCLUDE_FLAGS := -Iwebserver/src
-LINKER_FLAGS := -g -shared
+LINKER_FLAGS := -g -shared -lrt
 DEFINES :=
 
 # Make does not offer a recursive wildcard function, so here's one:

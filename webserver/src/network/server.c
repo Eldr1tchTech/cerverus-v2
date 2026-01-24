@@ -1,9 +1,10 @@
 #include "server.h"
 
 #include "core/memory/cmem.h"
-#include "core/logger.h"
+#include "core/util/logger.h"
 #include "network/router.h"
 #include "network/request.h"
+#include "network/response.h"
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -101,6 +102,8 @@ void server_run(server* s) {
         LOG_INFO("Request received.");
 
         router_handle_route(s->r, req, res);
+
+        send(client_fd, response_serialize(res), 1892, 0);
         
         close(client_fd);
     }

@@ -34,5 +34,6 @@ void darray_add(darray* darr, void* element) {
         darray_resize(darr, darr->size * 2);
     }
     
-    cmem_mcpy(element, darr->data + darr->stride * darr->length, darr->stride);
+    cmem_mcpy(darr->data + darr->stride * darr->length, element, darr->stride);
+    darr->length++;
 }
