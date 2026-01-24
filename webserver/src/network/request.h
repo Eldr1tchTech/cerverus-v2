@@ -2,4 +2,4 @@
 
 #include "network_types.inl"
 
-request request_parse(char* raw_req);
+request* request_parse(char* raw_req);

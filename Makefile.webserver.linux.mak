@@ -4,7 +4,7 @@ OBJ_DIR := obj
 
 ASSEMBLY := webserver
 EXTENSION := .so
-COMPILER_FLAGS := -g -fdeclspec -fPIC
+COMPILER_FLAGS := -std=c23 -g -fdeclspec -fPIC
 INCLUDE_FLAGS := -Iwebserver/src
 LINKER_FLAGS := -g -shared
 DEFINES :=

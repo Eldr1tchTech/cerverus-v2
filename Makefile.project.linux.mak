@@ -4,7 +4,7 @@ OBJ_DIR := obj
 
 ASSEMBLY := project
 EXTENSION := 
-COMPILER_FLAGS := -g -fdeclspec -fPIC
+COMPILER_FLAGS := -std=c23 -g -fdeclspec -fPIC
 INCLUDE_FLAGS := -Iwebserver/src
 LINKER_FLAGS := -L./$(BUILD_DIR)/ -lwebserver -Wl,-rpath,.
 DEFINES :=

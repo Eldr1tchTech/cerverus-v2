@@ -4,10 +4,12 @@
 
 typedef enum http_method {
     http_method_get,
+    http_method_unknown,
 } http_method;
 
 typedef enum http_version {
     http_version_1p1,
+    http_version_unknown,
 } http_version;
 
 typedef struct header
