@@ -5,6 +5,7 @@
 #include "network/router.h"
 #include "network/request.h"
 #include "network/response.h"
+#include "core/util/profiler.h"
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -101,13 +102,15 @@ void server_run(server* s) {
 
         LOG_INFO("Request received.");
 
-        router_handle_route(s->r, req, res);
 
+        profile_operation("routing", {
+            router_handle_route(s->r, req, res);
+            send(client_fd, response_serialize(res), 1892, 0);
+        });
+        
         cmem_free(memory_tag_response, res->body.data);
         cmem_free(memory_tag_response, res->headers.headers);
         cmem_free(memory_tag_response, res);
-
-        send(client_fd, response_serialize(res), 1892, 0);
         
         close(client_fd);
     }

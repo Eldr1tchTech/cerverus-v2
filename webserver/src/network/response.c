@@ -21,39 +21,54 @@ char *serialize_http_version(http_version version)
 char *response_serialize(response *res)
 {
     char *raw_res = cmem_alloc(memory_tag_response, 8192 * sizeof(char));
-    snprintf(raw_res, 8192 * sizeof(char),
-             "%s %i %s\r\n",
-             serialize_http_version(res->status_line.version),
-             res->status_line.status_code, res->status_line.reason_phrase);
-    
-    char raw_header[521] = {0}; 
+    size_t offset = 0;
+    size_t capacity = 8192;
+
+    const char *version = serialize_http_version(res->status_line.version);
+    if (!version)
+    {
+        LOG_ERROR("response_serialize - No version value.");
+        version = "HTTP/1.1"; // or assert / log fatal
+    }
+
+    offset += snprintf(raw_res + offset, capacity - offset,
+                       "%s %i %s\r\n",
+                       version,
+                       res->status_line.status_code,
+                       res->status_line.reason_phrase);
+
     for (size_t i = 0; i < res->headers.header_count; i++)
     {
-        snprintf(raw_header, 512, "%s: %s\r\n", res->headers.headers[i].name, res->headers.headers[i].value); 
-        strcat(raw_res, raw_header);
+        offset += snprintf(raw_res + offset, capacity - offset,
+                           "%s: %s\r\n",
+                           res->headers.headers[i].name,
+                           res->headers.headers[i].value);
     }
 
-    strcat(raw_res, "\r\n");
+    offset += snprintf(raw_res + offset, capacity - offset, "\r\n");
 
-    if (res->body.body_size != 0)
+    if (res->body.body_size > 0)
     {
-        strncat(raw_res, res->body.data, res->body.body_size);
-        strcat(raw_res, "\r\n");
+        cmem_mcpy(raw_res + offset, res->body.data, res->body.body_size);
+        offset += res->body.body_size;
     }
-    
     return raw_res;
 }
 
-char* content_type_val_helper(const char* ext) {
+char *content_type_val_helper(const char *ext)
+{
     if (ext)
     {
         if (strcmp(ext + 1, "html") == 0)
         {
             return "text/html";
-        } else if (strcmp(ext + 1, "css") == 0)
+        }
+        else if (strcmp(ext + 1, "css") == 0)
         {
             return "text/css";
-        } else {
+        }
+        else
+        {
             LOG_ERROR("content_type_val_helper - Currently unsuported file extension: %s. Returning null.", ext);
             return NULL;
         }
