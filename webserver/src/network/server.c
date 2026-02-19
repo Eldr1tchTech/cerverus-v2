@@ -1,5 +1,7 @@
 #include "server.h"
 
+#include "defines.h"
+
 #include "core/memory/cmem.h"
 #include "core/util/logger.h"
 #include "core/util/profiler.h"
@@ -15,6 +17,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+
+// TODO: Look into this.
+// void handle_sigpipe(int sig) {
+//     // Ignore SIGPIPE to prevent crashes when client disconnects
+//     fprintf(stderr, "Caught SIGPIPE, client disconnected unexpectedly\n");
+// }
 
 server *server_create(server_config s_conf)
 {
@@ -80,8 +88,9 @@ void server_handle_request(server *s, request *req, int client_fd)
                 darray_add(res->headers, &h);
 
                 // 2. Send response and file
-                send(client_fd, response_serialize(res), 1982, 0);
-                sendfile(client_fd, file_fd, 0, 0);
+                char* raw = response_serialize(res);
+                send(client_fd, raw, strlen(raw), 0);
+                sendfile(client_fd, file_fd, 0, file_stat.st_size);
 
                 close(file_fd);
                 return;
@@ -121,8 +130,9 @@ void server_handle_request(server *s, request *req, int client_fd)
     darray_add(res->headers, &h);
 
     // 2. Send response and file
-    send(client_fd, response_serialize(res), 1982, 0);
-    sendfile(client_fd, file_fd, 0, 0);
+    char* raw = response_serialize(res);
+    send(client_fd, raw, strlen(raw), 0);
+    sendfile(client_fd, file_fd, 0, file_stat.st_size);
 
     close(file_fd);
 
@@ -131,6 +141,7 @@ void server_handle_request(server *s, request *req, int client_fd)
 
 void server_destroy(server *s)
 {
+    cmem_print_stats();
     cmem_free(memory_tag_server, s);
     darray_destroy(s->routes);
     s = 0;
@@ -138,6 +149,8 @@ void server_destroy(server *s)
 
 void server_run(server *s)
 {
+    cmem_print_stats();
+
     LOG_INFO("Starting server...");
 
     s->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -221,4 +234,6 @@ void server_run(server *s)
     }
 
     close(s->socket_fd);
+
+    server_destroy(s);
 }

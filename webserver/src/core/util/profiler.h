@@ -1,7 +1,6 @@
 #include "core/util/logger.h"
 
 #include <time.h>
-#include <sys/time.h>
 
 #define profile_operation(name, operation) do { \
     struct timespec start; \

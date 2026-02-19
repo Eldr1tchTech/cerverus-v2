@@ -2,16 +2,27 @@
 
 #include <stdlib.h>
 
+#define MEMORY_TAGS(X) \
+    X(memory_tag_darray, "[DARRAY]") \
+    X(memory_tag_router, "[ROUTER]") \
+    X(memory_tag_server, "[SERVER]") \
+    X(memory_tag_request, "[REQUEST]") \
+    X(memory_tag_response, "[RESPONSE]") \
+    X(memory_tag_string, "[STRING]") \
+    X(memory_tag_queue, "[QUEUE]")
+
+#define X_ENUM(tag, name) tag,
 typedef enum memory_tag {
-    memory_tag_darray,
-    memory_tag_router,
-    memory_tag_server,
-    memory_tag_request,
-    memory_tag_response,
-    memory_tag_string,
-    memory_tag_queue,
-    memory_tag_command_buffer,
+    MEMORY_TAGS(X_ENUM)
+    memory_tag_max_tags,
 } memory_tag;
+#undef GENERATE_ENUM
+
+typedef struct cmem_state
+{
+    int allocations[memory_tag_max_tags];
+    int allocated[memory_tag_max_tags];
+} cmem_state;
 
 void* cmem_alloc(memory_tag mem_tag, size_t size);
 
@@ -20,3 +31,5 @@ void cmem_free(memory_tag mem_tag, void* block);
 void cmem_zmem(void* block, size_t size);
 
 void cmem_mcpy(void* dest, void* source, size_t size);
+
+void cmem_print_stats();
