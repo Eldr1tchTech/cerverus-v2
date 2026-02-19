@@ -18,9 +18,9 @@ char *serialize_http_version(http_version version)
     }
 }
 
-response* response_create(int h_count, int b_size) {
+response* response_create(int b_size) {
     response* new_res = cmem_alloc(memory_tag_response, sizeof(response));
-    new_res->headers.headers = cmem_alloc(memory_tag_response, h_count * sizeof(header));
+    new_res->headers = darray_create(4, sizeof(header));
     new_res->body.data = cmem_alloc(memory_tag_response, b_size * sizeof(char));
 
     return new_res;
@@ -46,12 +46,13 @@ char *response_serialize(response *res)
                        res->status_line.status_code,
                        res->status_line.reason_phrase);
 
-    for (size_t i = 0; i < res->headers.header_count; i++)
+    header* header_data = res->headers->data;
+    for (size_t i = 0; i < res->headers->length; i++)
     {
         offset += snprintf(raw_res + offset, capacity - offset,
                            "%s: %s\r\n",
-                           res->headers.headers[i].name,
-                           res->headers.headers[i].value);
+                           header_data[i].name,
+                           header_data[i].value);
     }
 
     offset += snprintf(raw_res + offset, capacity - offset, "\r\n");
@@ -62,7 +63,7 @@ char *response_serialize(response *res)
         offset += res->body.body_size;
     }
 
-    cmem_free(memory_tag_response, res->headers.headers);
+    darray_destroy(res->headers);
     cmem_free(memory_tag_response, res->body.data);
     cmem_free(memory_tag_response, res);
     res = 0;

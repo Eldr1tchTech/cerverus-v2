@@ -1,6 +1,6 @@
 #include "queue.h"
 
-#include "memory/cmem.h"
+#include "core/memory/cmem.h"
 #include "core/util/logger.h"
 
 queue* queue_create(int stride) {

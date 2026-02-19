@@ -2,6 +2,8 @@
 
 #include "defines.h"
 
+#include "core/containers/darray.h"
+
 typedef enum http_method {
     http_method_get,
     http_method_unknown,
@@ -26,10 +28,7 @@ typedef struct request
         char* URI;
         http_version version;
     } request_line;
-    struct {
-        header* headers;
-        int header_count;
-    } headers;
+    darray* headers;
     struct {
         char* data;
         size_t body_size;
@@ -43,10 +42,7 @@ typedef struct response
         int status_code;
         char* reason_phrase;
     } status_line;
-    struct {
-        header* headers;
-        int header_count;
-    } headers;
+    darray* headers;
     struct {
         char* data;
         size_t body_size;
