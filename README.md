@@ -4,14 +4,14 @@ A high performance webserver made for linux first, should eventually also be abl
 
 ## TODO
 
-- Update the structure and unterface to make it a lot more usable and friendly, and actually update the website to something that is on topic and showcases the server
-- allow for just making the assets/public public, also update the actual website
-- Graceful failing for the most part once the server has been started.
-- htmx callbacks
-- create an client program that can be used for benchmarking
-- Probably switch to a trie
-- command buffer for the server-router interaction?
-  - Important to allow for sendfile and other things...
+- Test-Suite
+  - Stress tests
+- Add an table that tracks performance over time for the project
+- Dynamic routes
+- Trie for routing
+- Other file formats (mp4/mp3/etc.)
+- Uploading/Downloading Files
+- io_uring
 
 ## Prerequisites
 
@@ -32,31 +32,20 @@ A prerelease version is working!
 - filesystem
 - updated filesystem and request handling with io_uring on linux to up performance
 
+## Benchmark
+
+For a report to be created all unit tests must have passed as well as the smoke test. Specifc stats are for a peak load test with the arguments seen in the report. Note that key changes since the last report are included.
+
+### Report 22/02/2026
+
+Stats:
+
+Call:
+```benchmark();```
+
 ## Structure
 
-First create a router structure. Then initialize a server, passing the router along. Add whatever routes you want to the router. Lastly start the server.
-
-### Flow
-
-Server: command buffer, router
-
-Server receives request to connect.
-Server checks firewall for IP and connection stuff.
-Server passes request on to router.
-Router checks in public directory if its a file request.
-  If its valid fill command buffer to be executed.
-  If not continue
-Router then checks dynamic routes.
-  If there is a match, the callback fills the command buffer to be executed.
-  If not, it fails and sends 404.
-The router executes the command buffer.
-  Command send HTTP response
-  Send body if applicable
-  Close connection if applicable
-
-### Router
-
-The router handles the way requests are processed and responses are sent. You will add routes to it.
+Create a server, set it up, run it (more in depth documentation coming, for now just check out the default/example project).
 
 ### Server
 

@@ -2,7 +2,7 @@
 BUILD_DIR := bin
 OBJ_DIR := obj
 
-ASSEMBLY := tests
+ASSEMBLY := client
 EXTENSION := 
 COMPILER_FLAGS := -std=c23 -g -fdeclspec -fPIC
 INCLUDE_FLAGS := -Iwebserver/src
