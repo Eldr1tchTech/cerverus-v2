@@ -29,7 +29,7 @@
             "name": "(Linux) Tests",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/testsuite",
+            "program": "${workspaceFolder}/bin/tests",
             "preLaunchTask": "Build Tests",
             "args": [],
             "stopAtEntry": false,

@@ -4,8 +4,8 @@ A high performance webserver made for linux first, should eventually also be abl
 
 ## TODO
 
-- Test-Suite
-  - Stress tests
+- Outlined tests
+  - Up Next: finish a format for 
 - Add an table that tracks performance over time for the project
 - Dynamic routes
 - Trie for routing
