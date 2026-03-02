@@ -1,5 +1,4 @@
 #include "timer.h"
-#include <linux/time.h>
 
 void timer_start(timer* t) {
     clock_gettime(CLOCK_MONOTONIC, &t->start);

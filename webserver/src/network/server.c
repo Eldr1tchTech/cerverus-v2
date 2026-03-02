@@ -17,12 +17,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <errno.h>
 
-// TODO: Look into this.
-// void handle_sigpipe(int sig) {
-//     // Ignore SIGPIPE to prevent crashes when client disconnects
-//     fprintf(stderr, "Caught SIGPIPE, client disconnected unexpectedly\n");
-// }
+void handle_sigpipe(int sig) {
+    // Ignore SIGPIPE to prevent crashes when client disconnects
+    LOG_DEBUG("Caught SIGPIPE, client disconnected unexpectedly\n");
+}
 
 server *server_create(server_config s_conf)
 {
@@ -36,6 +38,69 @@ server *server_create(server_config s_conf)
 void server_add_route(server *s, route *rt)
 {
     darray_add(s->routes, rt);
+}
+
+bool send_file_response(int client_fd, int file_fd, const char* content_type, int status_code, const char* reason_phrase) {
+    response *res = response_create(0);
+
+    res->status_line.version = http_version_1p1;
+    res->status_line.status_code = status_code;
+    res->status_line.reason_phrase = (char*)reason_phrase;
+
+    struct stat file_stat;
+    if (fstat(file_fd, &file_stat) == -1) {
+        LOG_ERROR("send_file_response - fstat failed");
+        cmem_free(memory_tag_response, res);
+        return false;
+    }
+
+    header h = {
+        .name = "Content-Type",
+        .value = (char*)content_type,
+    };
+    darray_add(res->headers, &h);
+
+    h.name = "Content-Length";
+    h.value = asprintf("%ld", file_stat.st_size);
+    darray_add(res->headers, &h);
+
+    h.name = "Connection";
+    h.value = "close";
+    darray_add(res->headers, &h);
+
+    char* raw = response_serialize(res);
+    if (!raw) {
+        LOG_ERROR("send_file_response - response_serialize failed");
+        return false;
+    }
+
+    // Send headers with MSG_NOSIGNAL to prevent SIGPIPE
+    ssize_t sent = send(client_fd, raw, strlen(raw), MSG_NOSIGNAL);
+    cmem_free(memory_tag_response, raw);
+    
+    if (sent == -1) {
+        LOG_DEBUG("send_file_response - send headers failed, client likely disconnected");
+        return false;
+    }
+
+    // Send file contents
+    off_t offset = 0;
+    ssize_t remaining = file_stat.st_size;
+    
+    while (remaining > 0) {
+        ssize_t sent_bytes = sendfile(client_fd, file_fd, &offset, remaining);
+        if (sent_bytes == -1) {
+            if (errno == EPIPE || errno == ECONNRESET) {
+                LOG_DEBUG("send_file_response - client disconnected during file transfer");
+            } else {
+                LOG_ERROR("send_file_response - sendfile failed: %s", strerror(errno));
+            }
+            return false;
+        }
+        remaining -= sent_bytes;
+    }
+
+    return true;
 }
 
 void server_handle_request(server *s, request *req, int client_fd)
@@ -149,6 +214,9 @@ void server_destroy(server *s)
 
 void server_run(server *s)
 {
+    // Install SIGPIPE handler to prevent crashes
+    signal(SIGPIPE, handle_sigpipe);
+    
     cmem_print_stats();
 
     LOG_INFO("Starting server...");
