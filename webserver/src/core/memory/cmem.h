@@ -11,7 +11,7 @@
     X(memory_tag_string, "[STRING]") \
     X(memory_tag_queue, "[QUEUE]") \
     X(memory_tag_client, "[CLIENT]") \
-    X(memory_tag_client_orchestrator, "[CLIENT_ORCHESTRATOR]")
+    X(memory_tag_client_manager, "[CLIENT_MANAGER]")
 
 #define X_ENUM(tag, name) tag,
 typedef enum memory_tag {

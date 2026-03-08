@@ -4,8 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/webserver/src/**",
-                "${workspaceFolder}/testsuite/src/**",
-                "${workspaceFolder}/client/src/**",
+                "${workspaceFolder}/tests/src/**"
             ],
             "defines": [
                 "_DEBUG",
