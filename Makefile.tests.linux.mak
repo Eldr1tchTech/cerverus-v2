@@ -5,7 +5,7 @@ OBJ_DIR := obj
 ASSEMBLY := tests
 EXTENSION := 
 COMPILER_FLAGS := -std=c23 -g -fdeclspec -fPIC
-INCLUDE_FLAGS := -Iwebserver/src
+INCLUDE_FLAGS := -Iwebserver/src -Itests/src
 LINKER_FLAGS := -L./$(BUILD_DIR)/ -lwebserver -Wl,-rpath,.
 DEFINES :=
 
