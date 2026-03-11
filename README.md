@@ -6,8 +6,7 @@ A high performance webserver made for linux first, should eventually also be abl
 
 - Add an table that tracks performance over time for the project (stress testing is mostly there, but does still not properly work/store values)
 - Dynamic routes
-- Trie for routing
-- Other file formats (mp4/mp3/etc.)
+- Other file formats (mp4/mp3/etc.) kinda? do I even need to do anything really?
 - Uploading/Downloading Files
 - io_uring
 
@@ -33,13 +32,6 @@ A prerelease version is working!
 ## Benchmark
 
 For a report to be created all unit tests must have passed as well as the smoke test. Specifc stats are for a peak load test with the arguments seen in the report. Note that key changes since the last report are included.
-
-### Report 22/02/2026
-
-Stats:
-
-Call:
-```benchmark();```
 
 ## Structure
 

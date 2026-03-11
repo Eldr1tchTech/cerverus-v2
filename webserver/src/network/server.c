@@ -192,7 +192,9 @@ void server_handle_request(server *s, request *req, int client_fd)
                 // 2. Send response and file
                 char *raw = response_serialize(res);
                 send(client_fd, raw, strlen(raw), 0);
-                sendfile(client_fd, file_fd, 0, file_stat.st_size); // TODO: Still run into a stupid broken pipe exception here...
+                // TODO: Still run into a stupid broken pipe exception here... EFFING PIPE! AAAAAAAAAAAA
+                // CRASH COUNTER: 5 (at least)
+                sendfile(client_fd, file_fd, 0, file_stat.st_size);
 
                 close(file_fd);
                 return;

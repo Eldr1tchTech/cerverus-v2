@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Cerverus</title>
 
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
     <style>
         :root {
             --bg: #0f1115;
@@ -41,6 +44,17 @@
             margin: 0.5rem 0;
         }
 
+        button {
+            margin-top: 1rem;
+            padding: 0.6rem 1rem;
+            border: none;
+            border-radius: 6px;
+            background: var(--accent);
+            color: black;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
         footer {
             margin-top: 2rem;
             font-size: 0.9rem;
@@ -61,6 +75,17 @@
 
     <p>A minimal high-performance webserver written in <code>C</code>.</p>
     <p>Designed for speed, simplicity, and modern hypermedia.</p>
+
+    <!-- HTMX test button -->
+    <button 
+        hx-get="/htmx-test" 
+        hx-target="#htmx-result"
+        hx-swap="innerHTML">
+        Test HTMX
+    </button>
+
+    <!-- Result area -->
+    <div id="htmx-result" style="margin-top:1rem;color:var(--accent);"></div>
 
     <footer>
         Powered by Cerverus
