@@ -7,6 +7,7 @@
 
 trie* trie_create() {
     trie* new_trie = cmem_alloc(memory_tag_trie, sizeof(trie));
+    new_trie->roots = cmem_alloc(memory_tag_trie, http_method_unknown * sizeof(trie_node*));
     for (int i = 0; i < http_method_unknown; i++)
     {
         new_trie->roots[i] = trie_node_create();
@@ -20,6 +21,7 @@ void trie_destroy(trie* t) {
     {
         trie_node_destroy(t->roots[i]);
     }
+    cmem_free(memory_tag_trie, t->roots);
     cmem_free(memory_tag_trie, t);
 }
 

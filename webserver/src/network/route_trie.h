@@ -4,18 +4,6 @@
 
 #include "network/server.h"
 
-typedef struct trie_node
-{
-    char* segment;
-    route_callback* handler;
-    darray* children;
-} trie_node;
-
-typedef struct trie
-{
-    trie_node** roots;
-} trie;
-
 trie* trie_create();
 void trie_destroy(trie* t);
 
