@@ -1,22 +1,15 @@
 #pragma once
 
-#include "core/containers/darray.h"
 #include "network/network_types.inl"
 
-typedef void (*route_callback)(request* req, int client_fd);
-
-typedef struct route
-{
-    http_method method;
-    char* URI;
-    route_callback callback;
-} route;
+#include "core/containers/darray.h"
+#include "network/route_trie.h"
 
 typedef struct server
 {
     int socket_fd;
     // TODO: Change to use an trie
-    darray* routes;
+    trie* route_trie;
 } server;
 
 server* server_create();

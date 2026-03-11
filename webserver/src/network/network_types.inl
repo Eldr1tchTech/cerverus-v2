@@ -6,6 +6,7 @@
 
 typedef enum http_method {
     http_method_get,
+    http_method_post,
     http_method_unknown,
 } http_method;
 
@@ -48,3 +49,12 @@ typedef struct response
         size_t body_size;
     } body;
 } response;
+
+typedef void (*route_callback)(request* req, int client_fd);
+
+typedef struct route
+{
+    http_method method;
+    char* URI;
+    route_callback callback;
+} route;

@@ -8,6 +8,7 @@
 #include "core/util/util.h"
 #include "network/request.h"
 #include "network/response.h"
+#include "network/route_trie.h"
 
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -30,86 +31,60 @@ void handle_sigpipe(int sig)
 server *server_create()
 {
     server *s = cmem_alloc(memory_tag_server, sizeof(server));
-    s->routes = darray_create(8, sizeof(route));
+    s->route_trie = trie_create();
 
     return s;
 }
 
 void server_add_route(server *s, route *rt)
 {
-    darray_add(s->routes, rt);
+    trie_add_route(s->route_trie, rt);
 }
 
-bool send_file_response(int client_fd, int file_fd, const char *content_type, int status_code, const char *reason_phrase)
+bool send_file_response(int client_fd, int file_fd, int status_code, const char *reason_phrase, char* ext)
 {
+    // 1. Assemble response
+    // TODO: Eventually use a pool for this
     response *res = response_create(0);
 
     res->status_line.version = http_version_1p1;
-    res->status_line.status_code = status_code;
-    res->status_line.reason_phrase = (char *)reason_phrase;
+    res->status_line.status_code = 200;
+    res->status_line.reason_phrase = "OK";
+    char *content_type_value = "text/html";
 
-    struct stat file_stat;
-    if (fstat(file_fd, &file_stat) == -1)
+    if (ext && strcmp(ext + 1, "html") == 0)
     {
-        LOG_ERROR("send_file_response - fstat failed");
-        cmem_free(memory_tag_response, res);
-        return false;
+        content_type_value = "text/html";
+    }
+    else if (ext && strcmp(ext + 1, "css") == 0)
+    {
+        content_type_value = "text/css";
     }
 
+    struct stat file_stat;
+    fstat(file_fd, &file_stat);
+
+    int header_count = 3;
     header h = {
         .name = "Content-Type",
-        .value = (char *)content_type,
+        .value = content_type_value,
     };
     darray_add(res->headers, &h);
 
     h.name = "Content-Length";
-    h.value = asprintf("%ld", file_stat.st_size);
+    h.value = asprintf("%i", file_stat.st_size);
     darray_add(res->headers, &h);
 
     h.name = "Connection";
     h.value = "close";
     darray_add(res->headers, &h);
 
+    // 2. Send response and file
     char *raw = response_serialize(res);
-    if (!raw)
-    {
-        LOG_ERROR("send_file_response - response_serialize failed");
-        return false;
-    }
+    send(client_fd, raw, strlen(raw), 0);
+    sendfile(client_fd, file_fd, 0, file_stat.st_size);
 
-    // Send headers with MSG_NOSIGNAL to prevent SIGPIPE
-    ssize_t sent = send(client_fd, raw, strlen(raw), MSG_NOSIGNAL);
-    cmem_free(memory_tag_response, raw);
-
-    if (sent == -1)
-    {
-        LOG_DEBUG("send_file_response - send headers failed, client likely disconnected");
-        return false;
-    }
-
-    // Send file contents
-    off_t offset = 0;
-    ssize_t remaining = file_stat.st_size;
-
-    while (remaining > 0)
-    {
-        ssize_t sent_bytes = sendfile(client_fd, file_fd, &offset, remaining);
-        if (sent_bytes == -1)
-        {
-            if (errno == EPIPE || errno == ECONNRESET)
-            {
-                LOG_DEBUG("send_file_response - client disconnected during file transfer");
-            }
-            else
-            {
-                LOG_ERROR("send_file_response - sendfile failed: %s", strerror(errno));
-            }
-            return false;
-        }
-        remaining -= sent_bytes;
-    }
-
-    return true;
+    close(file_fd);
 }
 
 void server_handle_request(server *s, request *req, int client_fd)
@@ -226,10 +201,13 @@ void server_handle_request(server *s, request *req, int client_fd)
     }
 
     // 2. Check against dynamic registered routes
-    for (int i = 0; i < s->routes->length; i++)
+    route_callback* handler = trie_find_handler(s->route_trie, req->request_line.method, req->request_line.URI);
+    if (handler)
     {
-        /* code */
+        (*handler)(req, client_fd);
+        return;
     }
+    
 
     // 3. Send 404 if you have made it to this point
     int file_fd = open("assets/404.html", O_RDONLY);
@@ -266,16 +244,13 @@ void server_handle_request(server *s, request *req, int client_fd)
     sendfile(client_fd, file_fd, 0, file_stat.st_size);
 
     close(file_fd);
-
-    // send(client_fd, response_serialize(res), 1982, 0);
 }
 
 void server_destroy(server *s)
 {
     cmem_print_stats();
     cmem_free(memory_tag_server, s);
-    darray_destroy(s->routes);
-    s = 0;
+    trie_destroy(s->route_trie);
 }
 
 void server_run(server *s)
