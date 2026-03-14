@@ -4,15 +4,30 @@
 #include <core/memory/cmem.h>
 #include <core/util/logger.h>
 #include <core/util/util.h>
+#include <network/route.h>
 
 #include <string.h>
 #include <sys/socket.h>
 #include <stdio.h>
+#include <math.h>
+#include <fcntl.h>
 
-void htmx_test_callback(request* req, int client_fd) {
-    char* text = "<img src=\"/olve_and_christopher.jpg\" width=200>";
+void random_image_provider_callback(request *req, int client_fd)
+{
+    req->request_line.URI += 5;
+    int file_fd = open(asprintf("assets/images/img_%s", req->request_line.URI), O_RDONLY);
+    if (file_fd != -1)
+    {
+        send_file_response(client_fd, file_fd, 200, "OK", "html");
+        return;
+    }
+}
 
-    char* htmx_text = cmem_alloc(memory_tag_response, strlen(text) + 1);
+void random_image_callback(request *req, int client_fd)
+{
+    char *text = asprintf("<img src=\"/pic/%i\" width=200>", rand() % 3);
+
+    char *htmx_text = cmem_alloc(memory_tag_response, strlen(text) + 1);
     strcpy(htmx_text, text);
 
     response *res = response_create(strlen(htmx_text));
@@ -44,16 +59,17 @@ void htmx_test_callback(request* req, int client_fd) {
     send(client_fd, raw, strlen(raw), 0);
 }
 
-int main() {
-    server* s = server_create();
+int main()
+{
+    server *s = server_create();
 
-    route rt = {
-        .method = http_method_get,
-        .URI = "/htmx-test",
-        .callback = htmx_test_callback,
-    };
+    route *rt;
 
-    server_add_route(s, &rt);
+    rt = route_create(http_method_get, "/random_image", random_image_callback);
+    server_add_route(s, rt);
+
+    rt = route_create(http_method_get, "/pic/:id", random_image_provider_callback);
+    server_add_route(s, rt);
 
     server_run(s);
 }
