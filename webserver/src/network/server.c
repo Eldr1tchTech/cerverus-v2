@@ -41,7 +41,7 @@ void server_add_route(server *s, route *rt)
     trie_add_route(s->route_trie, rt);
 }
 
-bool send_file_response(int client_fd, int file_fd, int status_code, const char *reason_phrase, char* ext)
+void send_file_response(int client_fd, int file_fd, int status_code, const char *reason_phrase, char *ext)
 {
     // 1. Assemble response
     // TODO: Eventually use a pool for this
@@ -52,6 +52,7 @@ bool send_file_response(int client_fd, int file_fd, int status_code, const char 
     res->status_line.reason_phrase = "OK";
     char *content_type_value = "text/html";
 
+    // probably create a helper for this...
     if (ext && strcmp(ext + 1, "html") == 0)
     {
         content_type_value = "text/html";
@@ -59,6 +60,10 @@ bool send_file_response(int client_fd, int file_fd, int status_code, const char 
     else if (ext && strcmp(ext + 1, "css") == 0)
     {
         content_type_value = "text/css";
+    }
+    else if (ext && strcmp(ext + 1, "jpeg") == 0)
+    {
+        content_type_value = "image/jpeg";
     }
 
     struct stat file_stat;
@@ -94,54 +99,7 @@ void server_handle_request(server *s, request *req, int client_fd)
         int file_fd = open("assets/public/index.html", O_RDONLY);
         if (file_fd != -1)
         {
-            // 1. Assemble response
-            // TODO: Eventually use a pool for this
-            response *res = response_create(0);
-
-            res->status_line.version = http_version_1p1;
-            res->status_line.status_code = 200;
-            res->status_line.reason_phrase = "OK";
-            char *content_type_value = "text/html";
-
-            const char *ext = strrchr(req->request_line.URI, '.');
-
-            if (ext && strcmp(ext + 1, "html") == 0)
-            {
-                content_type_value = "text/html";
-            }
-            else if (ext && strcmp(ext + 1, "css") == 0)
-            {
-                content_type_value = "text/css";
-            }
-            else if (ext && strcmp(ext + 1, "jpeg") == 0)
-            {
-                content_type_value = "image/jpeg";
-            }
-
-            struct stat file_stat;
-            fstat(file_fd, &file_stat);
-
-            int header_count = 3;
-            header h = {
-                .name = "Content-Type",
-                .value = content_type_value,
-            };
-            darray_add(res->headers, &h);
-
-            h.name = "Content-Length";
-            h.value = asprintf("%i", file_stat.st_size);
-            darray_add(res->headers, &h);
-
-            h.name = "Connection";
-            h.value = "close";
-            darray_add(res->headers, &h);
-
-            // 2. Send response and file
-            char *raw = response_serialize(res);
-            send(client_fd, raw, strlen(raw), 0);
-            sendfile(client_fd, file_fd, 0, file_stat.st_size);
-
-            close(file_fd);
+            send_file_response(client_fd, file_fd, 200, "OK", "html");
             return;
         }
     }
@@ -155,101 +113,23 @@ void server_handle_request(server *s, request *req, int client_fd)
             int file_fd = open(asprintf("assets/public%s", req->request_line.URI), O_RDONLY);
             if (file_fd != -1)
             {
-                // 1. Assemble response
-                // TODO: Eventually use a pool for this
-                response *res = response_create(0);
-
-                res->status_line.version = http_version_1p1;
-                res->status_line.status_code = 200;
-                res->status_line.reason_phrase = "OK";
-                char *content_type_value = "text/html";
-
-                const char *ext = strrchr(req->request_line.URI, '.');
-
-                if (ext && strcmp(ext + 1, "html") == 0)
-                {
-                    content_type_value = "text/html";
-                }
-                else if (ext && strcmp(ext + 1, "css") == 0)
-                {
-                    content_type_value = "text/css";
-                }
-
-                struct stat file_stat;
-                fstat(file_fd, &file_stat);
-
-                int header_count = 3;
-                header h = {
-                    .name = "Content-Type",
-                    .value = content_type_value,
-                };
-                darray_add(res->headers, &h);
-
-                h.name = "Content-Length";
-                h.value = asprintf("%i", file_stat.st_size);
-                darray_add(res->headers, &h);
-
-                h.name = "Connection";
-                h.value = "close";
-                darray_add(res->headers, &h);
-
-                // 2. Send response and file
-                char *raw = response_serialize(res);
-                send(client_fd, raw, strlen(raw), 0);
-                // TODO: Still run into a stupid broken pipe exception here... EFFING PIPE! AAAAAAAAAAAA
-                // CRASH COUNTER: 5 (at least)
-                sendfile(client_fd, file_fd, 0, file_stat.st_size);
-
-                close(file_fd);
+                send_file_response(client_fd, file_fd, 200, "OK", ext);
                 return;
             }
         }
     }
 
     // 2. Check against dynamic registered routes
-    route_callback* handler = trie_find_handler(s->route_trie, req->request_line.method, req->request_line.URI);
+    route_callback *handler = trie_find_handler(s->route_trie, req->request_line.method, req->request_line.URI);
     if (handler)
     {
         (*handler)(req, client_fd);
         return;
     }
-    
 
     // 3. Send 404 if you have made it to this point
     int file_fd = open("assets/404.html", O_RDONLY);
-    // 1. Assemble response
-    // TODO: Eventually use a pool for this
-    response *res = response_create(0);
-
-    res->status_line.version = http_version_1p1;
-    res->status_line.status_code = 404;
-    res->status_line.reason_phrase = "Not Found";
-    char *content_type_value = "text/html";
-
-    struct stat file_stat;
-    fstat(file_fd, &file_stat);
-
-    int header_count = 3;
-    header h = {
-        .name = "Content-Type",
-        .value = content_type_value,
-    };
-    darray_add(res->headers, &h);
-
-    h.name = "Content-Length";
-    h.value = asprintf("%i", file_stat.st_size);
-    darray_add(res->headers, &h);
-
-    h.name = "Connection";
-    h.value = "close";
-    darray_add(res->headers, &h);
-
-    // 2. Send response and file
-    char *raw = response_serialize(res);
-    send(client_fd, raw, strlen(raw), 0);
-    sendfile(client_fd, file_fd, 0, file_stat.st_size);
-
-    close(file_fd);
+    send_file_response(client_fd, file_fd, 404, "Not Found", "html");
 }
 
 void server_destroy(server *s)

@@ -2,8 +2,27 @@
 
 #include "core/memory/cmem.h"
 #include "core/util/util.h"
+#include "network/network_util.h"
 
 #include <string.h>
+
+trie_node* trie_node_create() {
+    trie_node* new_node = cmem_alloc(memory_tag_trie, sizeof(trie_node));
+    new_node->children = darray_create(2, sizeof(trie_node));
+
+    return new_node;
+}
+
+void trie_node_destroy(trie_node* t_node) {
+    trie_node* darr_data = t_node->children->data;
+    for (int i = 0; i < t_node->children->length; i++)
+    {
+        trie_node_destroy(&darr_data[i]);
+    }
+    
+    darray_destroy(t_node->children);
+    cmem_free(memory_tag_trie, t_node);
+}
 
 trie* trie_create() {
     trie* new_trie = cmem_alloc(memory_tag_trie, sizeof(trie));
@@ -25,47 +44,18 @@ void trie_destroy(trie* t) {
     cmem_free(memory_tag_trie, t);
 }
 
-trie_node* trie_node_create() {
-    trie_node* new_node = cmem_alloc(memory_tag_trie, sizeof(trie_node));
-    new_node->children = darray_create(2, sizeof(trie_node));
-
-    return new_node;
-}
-
-void trie_node_destroy(trie_node* t_node) {
-    trie_node* darr_data = t_node->children->data;
-    for (int i = 0; i < t_node->children->length; i++)
-    {
-        trie_node_destroy(&darr_data[i]);
-    }
-    
-    darray_destroy(t_node->children);
-    cmem_free(memory_tag_trie, t_node);
-}
-
+// NOTE: For now it's just the first match, eventually it should be best match
 void trie_add_route(trie* t, route* rt) {
-    // Step 1: Fill out path segments.
-    // NOTE: Maybe use a queue instead?
-    darray* segment_darr = darray_create(4, sizeof(char*));
-    rt->URI++;  // Skip the initial /
-    char* segment = strtok(rt->URI, "/");
-
     trie_node* root = t->roots[rt->method];
     
-    while (segment)
-    {
-        darray_add(segment_darr, segment);
-        segment = strtok(NULL, "/");
-    }
-    
-    // Step 2: Find the final node
-    char** segment_darr_data = segment_darr->data;
-    for (int i = 0; i < segment_darr->length; i++)
+    // Find the final node
+    route_segment* segment_darr_data = rt->segments->data;
+    for (int i = 0; i < rt->segments->length; i++)
     {
         trie_node* children_darr_data = root->children->data;
         for (int j = 0; j < root->children->length; j++)
         {
-            if (strcmp(segment_darr_data[i], children_darr_data[j].segment) == 0)
+            if (strcmp(segment_darr_data[i].path_segment, children_darr_data[j].segment.path_segment) == 0)
             {
                 root = &children_darr_data[j];
                 break;
@@ -75,40 +65,37 @@ void trie_add_route(trie* t, route* rt) {
             {
                 // Not present in the children.
                 trie_node* new_node = trie_node_create();
-                new_node->segment = asprintf("%s", segment_darr_data[i]);
+                new_node->segment = segment_darr_data[i];
                 root = new_node;
                 break;
             }
         }
     }
 
-    root->handler = &rt->callback;
-    darray_destroy(segment_darr);
+    root->callback = &rt->callback;
 }
 
 route_callback* trie_find_handler(trie* t, http_method method, char* URI) {
-    // Step 1: Fill out path segments.
-    // NOTE: Maybe use a queue instead?
-    darray* segment_darr = darray_create(4, sizeof(char*));
-    URI++;
-    char* segment = strtok(URI, "/");
+    darray* segment_darr = parse_URI(URI);
 
     trie_node* root = t->roots[method];
     
-    while (segment)
-    {
-        darray_add(segment_darr, segment);
-        segment = strtok(NULL, "/");
-    }
-    
-    // Step 2: Find the final node
-    char** segment_darr_data = segment_darr->data;
+    // Find the final node
+    route_segment* segment_darr_data = segment_darr->data;
     for (int i = 0; i < segment_darr->length; i++)
     {
         trie_node* children_darr_data = root->children->data;
         for (int j = 0; j < root->children->length; j++)
         {
-            if (strcmp(segment_darr_data[i], children_darr_data[j].segment) == 0)
+            // Check for static match
+            if (strcmp(segment_darr_data[i].path_segment, children_darr_data[j].segment.path_segment) == 0)
+            {
+                root = &children_darr_data[j];
+                break;
+            }
+
+            // Check for dynamic "match" (not really)
+            if (children_darr_data[j].segment.is_dynamic)
             {
                 root = &children_darr_data[j];
                 break;
@@ -122,7 +109,5 @@ route_callback* trie_find_handler(trie* t, http_method method, char* URI) {
         }
     }
 
-    darray_destroy(segment_darr);
-
-    return root->handler;
+    return root->callback;
 }

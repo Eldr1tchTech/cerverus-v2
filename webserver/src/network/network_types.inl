@@ -52,18 +52,23 @@ typedef struct response
 
 typedef void (*route_callback)(request* req, int client_fd);
 
+typedef struct route_segment {
+    char* path_segment;
+    bool is_dynamic;
+} route_segment;
+
 typedef struct route
 {
     http_method method;
-    char* URI;
+    darray* segments;
     route_callback callback;
 } route;
 
 typedef struct trie_node
 {
-    char* segment;
-    route_callback* handler;
     darray* children;
+    route_segment segment;
+    route_callback callback;
 } trie_node;
 
 typedef struct trie

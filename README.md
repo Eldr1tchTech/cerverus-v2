@@ -4,9 +4,9 @@ A high performance webserver made for linux first, should eventually also be abl
 
 ## TODO
 
-- Add an table that tracks performance over time for the project (stress testing is mostly there, but does still not properly work/store values)
 - Dynamic routes
-- Other file formats (mp4/mp3/etc.) kinda? do I even need to do anything really?
+- Create a strdup function that can take optional data about the string to reduce duplicating calculations.
+- Other file formats (mp4/mp3/etc.)
 - Uploading/Downloading Files
 - io_uring
 
@@ -22,6 +22,7 @@ A prerelease version is working!
 
 - Can host a static website
 - Only allows for GET requests
+- Can serve custom routes (GET and static routes only)
 
 ### Upcoming
 

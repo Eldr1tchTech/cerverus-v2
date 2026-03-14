@@ -4,16 +4,14 @@
 
 #define MEMORY_TAGS(X) \
     X(memory_tag_darray, "[DARRAY]") \
-    X(memory_tag_router, "[ROUTER]") \
     X(memory_tag_server, "[SERVER]") \
     X(memory_tag_request, "[REQUEST]") \
     X(memory_tag_response, "[RESPONSE]") \
     X(memory_tag_string, "[STRING]") \
     X(memory_tag_queue, "[QUEUE]") \
-    X(memory_tag_client, "[CLIENT]") \
-    X(memory_tag_client_manager, "[CLIENT_MANAGER]") \
     X(memory_tag_benchmark, "[BENCHMARK]") \
-    X(memory_tag_trie, "[TRIE]")
+    X(memory_tag_trie, "[TRIE]") \
+    X(memory_tag_route, "[ROUTE]")
 
 #define X_ENUM(tag, name) tag,
 typedef enum memory_tag {

@@ -28,3 +28,31 @@ char* asprintf(char* fmt, ...) {
     va_end(args);
     return str;
 }
+
+// STRing CHaRacter Count
+int strchrc(char* str, char c) {
+    int count = 0;
+    while (*str != '\0')
+    {
+        if (*str == c)
+        {
+            count++;
+        }
+    }
+    return count;
+}
+
+// STRing CHaRacter Index
+int strchri(char* str, char c) {
+    int i = 0;
+    while (*str != '\0')
+    {
+        if (*str == c)
+        {
+            return i;
+        } else {
+            i++;
+        }
+    }
+    return -1;
+}

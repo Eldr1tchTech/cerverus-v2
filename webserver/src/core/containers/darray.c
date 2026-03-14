@@ -37,3 +37,7 @@ void darray_add(darray* darr, void* element) {
     cmem_mcpy(darr->data + darr->stride * darr->length, element, darr->stride);
     darr->length++;
 }
+
+void* darray_get(darray* darr, int index) {
+    return darr->data + (darr->stride * index);
+}
