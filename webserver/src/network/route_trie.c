@@ -46,33 +46,41 @@ void trie_destroy(trie* t) {
 
 // NOTE: For now it's just the first match, eventually it should be best match
 void trie_add_route(trie* t, route* rt) {
-    trie_node* root = t->roots[rt->method];
-    
-    // Find the final node
-    route_segment* segment_darr_data = rt->segments->data;
+    trie_node* current = t->roots[rt->method];
+
+    route_segment* segments = rt->segments->data;
     for (int i = 0; i < rt->segments->length; i++)
     {
-        trie_node* children_darr_data = root->children->data;
-        for (int j = 0; j < root->children->length; j++)
-        {
-            if (strcmp(segment_darr_data[i].path_segment, children_darr_data[j].segment.path_segment) == 0)
-            {
-                root = &children_darr_data[j];
-                break;
-            }
+        trie_node* children = current->children->data;
+        trie_node* next = NULL;
 
-            if (j == root->children->length - 1)
+        // Search existing children for a matching segment
+        for (int j = 0; j < current->children->length; j++)
+        {
+            if (strcmp(segments[i].path_segment, children[j].segment.path_segment) == 0)
             {
-                // Not present in the children.
-                trie_node* new_node = trie_node_create();
-                new_node->segment = segment_darr_data[i];
-                root = new_node;
+                next = &children[j];
                 break;
             }
         }
+
+        // Not found — create and attach a new child node
+        if (!next)
+        {
+            trie_node new_node = {0};
+            new_node.segment = segments[i];
+            new_node.children = darray_create(2, sizeof(trie_node));
+            new_node.callback = NULL;
+            darray_add(current->children, &new_node);
+            // Re-fetch: darray_add may have resized, invalidating old pointer
+            children = current->children->data;
+            next = &children[current->children->length - 1];
+        }
+
+        current = next;
     }
 
-    root->callback = &rt->callback;
+    current->callback = rt->callback;
 }
 
 route_callback* trie_find_handler(trie* t, http_method method, char* URI) {

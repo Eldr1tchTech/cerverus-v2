@@ -24,30 +24,23 @@ void random_image_provider_callback(request *req, int client_fd)
 
 void random_image_callback(request *req, int client_fd)
 {
-    char *text = asprintf("<img src=\"/pic/%i\" width=200>", rand() % 3);
+    LOG_DEBUG("called random image.");
+    char *body = asprintf("<img src=\"/pic/%i\" width=200>", rand() % 3);
 
-    char *htmx_text = cmem_alloc(memory_tag_response, strlen(text) + 1);
-    strcpy(htmx_text, text);
-
-    response *res = response_create(strlen(htmx_text));
-
+    response *res = response_create(strlen(body));
     res->status_line.version = http_version_1p1;
     res->status_line.status_code = 200;
     res->status_line.reason_phrase = "OK";
-
-    res->body.data = htmx_text;
-    res->body.body_size = strlen(text);
+    res->body.data = body;
+    res->body.body_size = strlen(body);
 
     header h;
-
     h.name = "Content-Type";
     h.value = "text/html";
     darray_add(res->headers, &h);
 
     h.name = "Content-Length";
-    char *content_length_str;
-    asprintf(&content_length_str, "%zu", strlen(htmx_text));
-    h.value = content_length_str;
+    h.value = asprintf("%zu", strlen(body));
     darray_add(res->headers, &h);
 
     h.name = "Connection";
