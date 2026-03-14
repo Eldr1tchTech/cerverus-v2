@@ -16,7 +16,9 @@ cmem_state state;
 void* cmem_alloc(memory_tag mem_tag, size_t size) {
     state.allocated[mem_tag] += size;
     state.allocations[mem_tag]++;
-    return malloc(size);
+    void* block = malloc(size);
+    cmem_zmem(block, size);
+    return block;
 }
 
 void cmem_free(memory_tag mem_tag, void* block) {
