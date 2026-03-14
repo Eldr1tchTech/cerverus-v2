@@ -22,7 +22,7 @@ void darray_destroy(darray* darr) {
 
 void darray_resize(darray* darr, int new_size) {
     void* temp = cmem_alloc(memory_tag_darray, darr->stride * new_size);
-    cmem_mcpy(darr->data, temp, darr->stride * darr->length);
+    cmem_mcpy(temp, darr->data, darr->stride * darr->length);
     cmem_free(memory_tag_darray, darr->data);
     darr->data = temp;
     darr->size = new_size;

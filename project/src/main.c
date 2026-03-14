@@ -18,7 +18,7 @@ void random_image_provider_callback(request *req, int client_fd)
     int file_fd = open(asprintf("assets/images/img_%s", req->request_line.URI), O_RDONLY);
     if (file_fd != -1)
     {
-        send_file_response(client_fd, file_fd, 200, "OK", "html");
+        send_file_response(client_fd, file_fd, 200, "OK", ".html");
         return;
     }
 }
@@ -56,7 +56,7 @@ void random_image_callback(request *req, int client_fd)
     darray_add(res->headers, &h);
 
     char *raw = response_serialize(res);
-    send(client_fd, raw, strlen(raw), 0);
+    send(client_fd, raw, strlen(raw), MSG_NOSIGNAL);
 }
 
 int main()

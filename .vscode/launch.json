@@ -13,6 +13,13 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bin/",
             "environment": [],
+            "setupCommands": [
+                {
+                    "description": "Ignore SIGPIPE",
+                    "text": "handle SIGPIPE nostop noprint pass",
+                    "ignoreFailures": false
+                }
+            ]
         },
         {
             "name": "(Windows) Launch",
@@ -23,7 +30,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bin/",
             "environment": [],
-            "console":"newExternalWindow",
+            "console": "newExternalWindow",
         },
         {
             "name": "(Linux) Tests",

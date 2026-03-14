@@ -22,12 +22,6 @@
 #include <stdbool.h>
 #include <errno.h>
 
-void handle_sigpipe(int sig)
-{
-    // Ignore SIGPIPE to prevent crashes when client disconnects
-    LOG_DEBUG("Caught SIGPIPE, client disconnected unexpectedly\n");
-}
-
 server *server_create()
 {
     server *s = cmem_alloc(memory_tag_server, sizeof(server));
@@ -86,7 +80,7 @@ void send_file_response(int client_fd, int file_fd, int status_code, const char 
 
     // 2. Send response and file
     char *raw = response_serialize(res);
-    send(client_fd, raw, strlen(raw), 0);
+    send(client_fd, raw, strlen(raw), MSG_NOSIGNAL);
     sendfile(client_fd, file_fd, 0, file_stat.st_size);
 
     close(file_fd);
@@ -99,7 +93,7 @@ void server_handle_request(server *s, request *req, int client_fd)
         int file_fd = open("assets/public/index.html", O_RDONLY);
         if (file_fd != -1)
         {
-            send_file_response(client_fd, file_fd, 200, "OK", "html");
+            send_file_response(client_fd, file_fd, 200, "OK", ".html");
             return;
         }
     }
@@ -129,7 +123,10 @@ void server_handle_request(server *s, request *req, int client_fd)
 
     // 3. Send 404 if you have made it to this point
     int file_fd = open("assets/404.html", O_RDONLY);
-    send_file_response(client_fd, file_fd, 404, "Not Found", "html");
+    if (file_fd != -1)
+    {
+        send_file_response(client_fd, file_fd, 404, "Not Found", ".html");
+    }
 }
 
 void server_destroy(server *s)
@@ -142,7 +139,11 @@ void server_destroy(server *s)
 void server_run(server *s)
 {
     // Install SIGPIPE handler to prevent crashes
-    signal(SIGPIPE, handle_sigpipe);
+    struct sigaction sa;
+    sa.sa_handler = SIG_IGN;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0; // No SA_RESETHAND — disposition stays ignored permanently
+    sigaction(SIGPIPE, &sa, NULL);
 
     cmem_print_stats();
 
@@ -163,8 +164,7 @@ void server_run(server *s)
         return;
     }
 
-    // TODO: Look into this...
-    // Enable non-blocking mode (optional)
+    // TODO:
     // fcntl(server_fd, F_SETFL, O_NONBLOCK);
 
     struct sockaddr_in addr = {
