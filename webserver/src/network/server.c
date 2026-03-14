@@ -71,7 +71,8 @@ void send_file_response(int client_fd, int file_fd, int status_code, const char 
     darray_add(res->headers, &h);
 
     h.name = "Content-Length";
-    h.value = asprintf("%i", file_stat.st_size);
+    char* content_length_str = asprintf("%i", file_stat.st_size);
+    h.value = content_length_str;
     darray_add(res->headers, &h);
 
     h.name = "Connection";
@@ -82,6 +83,8 @@ void send_file_response(int client_fd, int file_fd, int status_code, const char 
     char *raw = response_serialize(res);
     send(client_fd, raw, strlen(raw), MSG_NOSIGNAL);
     sendfile(client_fd, file_fd, 0, file_stat.st_size);
+    cmem_free(memory_tag_response, raw);
+    cmem_free(memory_tag_string, content_length_str);
 
     close(file_fd);
 }
@@ -114,7 +117,7 @@ void server_handle_request(server *s, request *req, int client_fd)
     }
 
     // 2. Check against dynamic registered routes
-    route_callback *handler = trie_find_handler(s->route_trie, req->request_line.method, req->request_line.URI);
+    route_callback handler = trie_find_handler(s->route_trie, req->request_line.method, req->request_line.URI);
     if (handler)
     {
         (*handler)(req, client_fd);

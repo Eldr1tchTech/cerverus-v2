@@ -14,12 +14,14 @@
 
 void random_image_provider_callback(request *req, int client_fd)
 {
-    int file_fd = open(asprintf("assets/images/img_%s", req->request_line.URI + 5), O_RDONLY);
+    char* file_name = asprintf("assets/images/img_%s.jpg", req->request_line.URI + 5);
+    int file_fd = open(file_name, O_RDONLY);
     if (file_fd != -1)
     {
         send_file_response(client_fd, file_fd, 200, "OK", ".html");
         return;
     }
+    cmem_free(memory_tag_string, file_name);
 }
 
 void random_image_callback(request *req, int client_fd)
@@ -40,7 +42,8 @@ void random_image_callback(request *req, int client_fd)
     darray_add(res->headers, &h);
 
     h.name = "Content-Length";
-    h.value = asprintf("%zu", strlen(body));
+    char* content_length_str = asprintf("%zu", strlen(body));
+    h.value = content_length_str;
     darray_add(res->headers, &h);
 
     h.name = "Connection";
@@ -49,6 +52,8 @@ void random_image_callback(request *req, int client_fd)
 
     char *raw = response_serialize(res);
     send(client_fd, raw, strlen(raw), MSG_NOSIGNAL);
+    cmem_free(memory_tag_response, raw);
+    cmem_free(memory_tag_string, content_length_str);
 }
 
 int main()

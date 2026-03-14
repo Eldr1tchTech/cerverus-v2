@@ -83,7 +83,7 @@ void trie_add_route(trie* t, route* rt) {
     current->callback = rt->callback;
 }
 
-route_callback* trie_find_handler(trie* t, http_method method, char* URI) {
+route_callback trie_find_handler(trie* t, http_method method, char* URI) {
     darray* segment_darr = parse_URI(URI);
 
     trie_node* root = t->roots[method];
@@ -116,6 +116,7 @@ route_callback* trie_find_handler(trie* t, http_method method, char* URI) {
             }
         }
     }
+    darray_destroy(segment_darr);
 
     return root->callback;
 }
