@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 void htmx_test_callback(request* req, int client_fd) {
-    char* text = "<img src=\"/jakob_jumpscare.jpg\" width=200>";
+    char* text = "<img src=\"/andreas.jpeg\" width=200>";
 
     char* htmx_text = cmem_alloc(memory_tag_response, strlen(text) + 1);
     strcpy(htmx_text, text);

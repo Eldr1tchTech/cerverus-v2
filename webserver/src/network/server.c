@@ -113,6 +113,10 @@ void server_handle_request(server *s, request *req, int client_fd)
             {
                 content_type_value = "text/css";
             }
+            else if (ext && strcmp(ext + 1, "jpeg") == 0)
+            {
+                content_type_value = "image/jpeg";
+            }
 
             struct stat file_stat;
             fstat(file_fd, &file_stat);
@@ -285,7 +289,7 @@ void server_run(server *s)
 
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
-        .sin_port = htons(0),
+        .sin_port = htons(8080),
         .sin_addr.s_addr = INADDR_ANY};
 
     if (bind(s->socket_fd, &addr, sizeof(addr)) == -1)
