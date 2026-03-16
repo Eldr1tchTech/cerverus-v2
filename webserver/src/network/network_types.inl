@@ -4,6 +4,9 @@
 
 #include "core/containers/darray.h"
 
+// TODO: Find a good max header count
+#define MAX_HEADER_COUNT 16
+
 typedef enum http_method {
     http_method_get,
     http_method_post,
@@ -29,7 +32,11 @@ typedef struct request
         char* URI;
         http_version version;
     } request_line;
-    darray* headers;
+    struct
+    {
+        header headers[MAX_HEADER_COUNT];
+        size_t header_count;
+    } headers;
     struct {
         char* data;
         size_t body_size;
@@ -43,7 +50,11 @@ typedef struct response
         int status_code;
         char* reason_phrase;
     } status_line;
-    darray* headers;
+    struct
+    {
+        header headers[MAX_HEADER_COUNT];
+        size_t header_count;
+    } headers;
     struct {
         char* data;
         size_t body_size;

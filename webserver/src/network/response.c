@@ -18,20 +18,30 @@ char *serialize_http_version(http_version version)
     }
 }
 
-response* response_create(int b_size) {
-    response* new_res = cmem_alloc(memory_tag_response, sizeof(response));
-    new_res->headers = darray_create(4, sizeof(header));
-    new_res->body.data = cmem_alloc(memory_tag_response, b_size * sizeof(char));
+response *response_create(int b_size)
+{
+    response *new_res = cmem_alloc(memory_tag_response, sizeof(response));
+    new_res->body.data = cmem_alloc(memory_tag_response, (b_size + 1) * sizeof(char)); // + 1 to account for null terminator
+    new_res->body.body_size = b_size;
 
     return new_res;
 }
 
+// TODO: Watch ownership of strings (heap vs stack allocation)
+void response_add_header(response* res, header h) {
+    if (res->headers.header_count == MAX_HEADER_COUNT)
+    {
+        LOG_ERROR("response_add_header - Headers already at MAX_HEADER_COUNT. Failing.");
+        return;
+    }
+    
+    res->headers.headers[res->headers.header_count++] = h;
+}
 
 char *response_serialize(response *res)
 {
-    char *raw_res = cmem_alloc(memory_tag_response, 8192 * sizeof(char));
-    size_t offset = 0;
-    size_t capacity = 8192;
+    // Pass 1: Calculate size
+    size_t size = 0;
 
     const char *version = serialize_http_version(res->status_line.version);
     if (!version)
@@ -40,55 +50,59 @@ char *response_serialize(response *res)
         return NULL;
     }
 
-    offset += snprintf(raw_res + offset, capacity - offset,
+    // STATUS LINE
+    size += sprintf(NULL, "%s %i %s\r\n",
+                    serialize_http_version(res->status_line.version),
+                    res->status_line.status_code,
+                    res->status_line.reason_phrase);
+
+    // HEADERS
+    for (size_t i = 0; i < res->headers.header_count; i++)
+    {
+        size += sprintf(NULL,
+                        "%s: %s\r\n",
+                        res->headers.headers[i].name,
+                        res->headers.headers[i].value);
+    }
+
+    size += sprintf(NULL, "\r\n");
+
+    // BODY
+    size += res->body.body_size;
+
+    // Pass 2: Allocate string and fill it
+
+    // Allocate
+    char *raw_res = cmem_alloc(memory_tag_response, (size + 1) * sizeof(char));
+    size_t offset = 0;
+
+    // STATUS LINE
+    offset += snprintf(raw_res + offset, size - offset,
                        "%s %i %s\r\n",
                        version,
                        res->status_line.status_code,
-                       res->status_line.reason_phrase);
+                       res->status_line.reason_phrase); // Don't really need the + offset in the first field since it's the first thing being added...
 
-    header* header_data = res->headers->data;
-    for (size_t i = 0; i < res->headers->length; i++)
+    // HEADERS
+    for (size_t i = 0; i < res->headers.header_count; i++)
     {
-        offset += snprintf(raw_res + offset, capacity - offset,
+        offset += snprintf(raw_res + offset, size - offset,
                            "%s: %s\r\n",
-                           header_data[i].name,
-                           header_data[i].value);
+                           res->headers.headers[i].name,
+                           res->headers.headers[i].value);
     }
 
-    offset += snprintf(raw_res + offset, capacity - offset, "\r\n");
+    offset += snprintf(raw_res + offset, size - offset, "\r\n");
 
+    // BODY
     if (res->body.body_size > 0)
     {
         cmem_mcpy(raw_res + offset, res->body.data, res->body.body_size);
         offset += res->body.body_size;
     }
 
-    darray_destroy(res->headers);
     cmem_free(memory_tag_response, res->body.data);
     cmem_free(memory_tag_response, res);
-    res = 0;
 
     return raw_res;
-}
-
-char *content_type_val_helper(const char *ext)
-{
-    if (ext)
-    {
-        if (strcmp(ext + 1, "html") == 0)
-        {
-            return "text/html";
-        }
-        else if (strcmp(ext + 1, "css") == 0)
-        {
-            return "text/css";
-        }
-        else
-        {
-            LOG_ERROR("content_type_val_helper - Currently unsuported file extension: %s. Returning null.", ext);
-            return NULL;
-        }
-    }
-    LOG_ERROR("content_type_val_helper - Please provide a valid char* for ext.");
-    return NULL;
 }

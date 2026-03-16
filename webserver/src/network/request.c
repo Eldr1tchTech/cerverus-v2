@@ -40,12 +40,13 @@ void parse_headers(request *req, char *raw_headers)
 {
     if (!raw_headers || strlen(raw_headers) == 0)
     {
-        req->headers = NULL;
+        req->headers.header_count = 0;
         return;
     }
 
     char *line = strtok(raw_headers, "\r\n");
-    header h;
+    req->headers.header_count = 0;
+    header* h = &req->headers.headers[req->headers.header_count];
 
     while (line != NULL)
     {
@@ -57,7 +58,7 @@ void parse_headers(request *req, char *raw_headers)
             *colon = '\0';
 
             // Header name is everything before the colon
-            h.name = line;
+            h->name = line;
 
             // Header value is everything after the colon (skip leading space)
             char *value = colon + 1;
@@ -65,9 +66,8 @@ void parse_headers(request *req, char *raw_headers)
             {
                 value++;
             }
-            h.value = value;
-
-            darray_add(req->headers, &h);
+            h->value = value;
+            req->headers.header_count++;
         }
         else
         {
@@ -81,30 +81,26 @@ void parse_headers(request *req, char *raw_headers)
 request *request_parse(char *raw_req)
 {
     request *req = cmem_alloc(memory_tag_request, sizeof(request));
-    req->headers = darray_create(4, sizeof(header));
 
-    char *raw_req_cpy = cmem_alloc(memory_tag_request, sizeof(char) * 4096);
-    strcpy(raw_req_cpy, raw_req);
-
-    req->_raw_buff = raw_req_cpy;
+    req->_raw_buff = cmem_alloc(memory_tag_request, strlen(raw_req));
+    strcpy(req->_raw_buff, raw_req);
 
     // STATUS LINE
-    char *index = strstr(raw_req_cpy, "\r\n");
+    char *index = strstr(raw_req, "\r\n");
     *index = '\0';
-    parse_request_line(req, raw_req_cpy);
-    raw_req_cpy = index + 2;
+    parse_request_line(req, raw_req);
+    raw_req = index + 2;
 
     // HEADERS
-    index = strstr(raw_req_cpy, "\r\n\r\n");
+    index = strstr(raw_req, "\r\n\r\n");
     *index = '\0';
-
-    parse_headers(req, raw_req_cpy);
+    parse_headers(req, raw_req);
+    raw_req = index + 4;
 
     // BODY
-    raw_req_cpy = index + 4;
-    req->body.body_size = strlen(raw_req_cpy);
-    req->body.data = cmem_alloc(memory_tag_request, (req->body.body_size + 1) * sizeof(char));
-    strcpy(req->body.data, raw_req_cpy);
+    req->body.body_size = strlen(raw_req);
+    req->body.data = (req->body.body_size == 0) ? NULL : cmem_alloc(memory_tag_request, (req->body.body_size + 1) * sizeof(char));
+    strcpy(req->body.data, raw_req);
 
     return req;
 }
@@ -112,9 +108,7 @@ request *request_parse(char *raw_req)
 void request_destroy(request *req)
 {
     cmem_free(memory_tag_request, req->request_line.URI);
-    darray_destroy(req->headers);
     if (req->body.body_size != 0) cmem_free(memory_tag_request, req->body.data);
     cmem_free(memory_tag_request, req->_raw_buff);
     cmem_free(memory_tag_request, req);
-    req = 0;
 }

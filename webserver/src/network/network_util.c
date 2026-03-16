@@ -1,6 +1,7 @@
 #include "network_util.h"
 
 #include "core/util/util.h"
+#include "core/util/logger.h"
 #include "core/memory/cmem.h"
 
 #include <string.h>
@@ -34,4 +35,50 @@ darray* parse_URI(char* URI) {
     }
 
     return new_darr;
+}
+
+char *content_type_val_helper(const char *ext)
+{
+    if (ext)
+    {
+        if (strcmp(ext + 1, "html") == 0)
+        {
+            return "text/html";
+        }
+        else if (strcmp(ext + 1, "css") == 0)
+        {
+            return "text/css";
+        }
+        else if (strcmp(ext + 1, "jpg") == 0 || strcmp(ext + 1, "jpeg") == 0)
+        {
+            return "image/jpeg";
+        }
+        else if (strcmp(ext + 1, "png") == 0)
+        {
+            return "image/png";
+        }
+        else if (strcmp(ext + 1, "gif") == 0)
+        {
+            return "image/gif";
+        }
+        else if (strcmp(ext + 1, "webp") == 0)
+        {
+            return "image/webp";
+        }
+        else if (strcmp(ext + 1, "svg") == 0)
+        {
+            return "image/svg+xml";
+        }
+        else if (strcmp(ext + 1, "ico") == 0)
+        {
+            return "image/x-icon";
+        }
+        else
+        {
+            LOG_ERROR("content_type_val_helper - Currently unsuported file extension: %s. Returning null.", ext);
+            return NULL;
+        }
+    }
+    LOG_ERROR("content_type_val_helper - Please provide a valid char* for ext.");
+    return NULL;
 }

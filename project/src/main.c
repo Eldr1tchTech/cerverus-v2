@@ -59,6 +59,7 @@ void random_image_callback(request *req, int client_fd)
 int main()
 {
     server *s = server_create();
+    srand(0);
 
     route *rt;
 

@@ -112,6 +112,7 @@ route_callback trie_find_handler(trie* t, http_method method, char* URI) {
             if (j == root->children->length - 1)
             {
                 // Not present
+                darray_destroy(segment_darr);
                 return NULL;
             }
         }

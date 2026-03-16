@@ -6,3 +6,5 @@
 
 // Parses an URI into an provided darray. Also creates the darray.
 darray* parse_URI(char* URI);
+
+char *content_type_val_helper(const char *ext);

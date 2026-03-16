@@ -9,6 +9,7 @@
 #include "network/request.h"
 #include "network/response.h"
 #include "network/route_trie.h"
+#include "network/network_util.h"
 
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -44,47 +45,25 @@ void send_file_response(int client_fd, int file_fd, int status_code, const char 
     res->status_line.version = http_version_1p1;
     res->status_line.status_code = 200;
     res->status_line.reason_phrase = "OK";
-    char *content_type_value = "text/html";
-
-    // probably create a helper for this...
-    if (ext && strcmp(ext + 1, "html") == 0)
-    {
-        content_type_value = "text/html";
-    }
-    else if (ext && strcmp(ext + 1, "css") == 0)
-    {
-        content_type_value = "text/css";
-    }
-    else if (ext && strcmp(ext + 1, "jpeg") == 0)
-    {
-        content_type_value = "image/jpeg";
-    }
 
     struct stat file_stat;
     fstat(file_fd, &file_stat);
 
-    int header_count = 3;
-    header h = {
-        .name = "Content-Type",
-        .value = content_type_value,
-    };
-    darray_add(res->headers, &h);
-
-    h.name = "Content-Length";
-    char* content_length_str = asprintf("%i", file_stat.st_size);
-    h.value = content_length_str;
-    darray_add(res->headers, &h);
-
-    h.name = "Connection";
-    h.value = "close";
-    darray_add(res->headers, &h);
+    // Headers
+    response_add_header(res, (header){.name = "Content-Type", .value = content_type_val_helper(ext)});
+    char *content_length_str = asprintf("%i", file_stat.st_size);
+    response_add_header(res, (header){.name = "Content-Length", .value = content_length_str});
+    response_add_header(res, (header){.name = "Connection", .value = "close"});
 
     // 2. Send response and file
     char *raw = response_serialize(res);
     send(client_fd, raw, strlen(raw), MSG_NOSIGNAL);
     sendfile(client_fd, file_fd, 0, file_stat.st_size);
     cmem_free(memory_tag_response, raw);
-    cmem_free(memory_tag_string, content_length_str);
+    cmem_free(memory_tag_string, content_length_str);   // Find some way to get rid of this...
+    /* IDEA:
+    Allocate a buffer that should be big enough, use snprintf, if it fails, allocate enough
+    */
 
     close(file_fd);
 }
