@@ -19,6 +19,7 @@ void random_image_provider_callback(request *req, int client_fd)
     if (file_fd != -1)
     {
         send_file_response(client_fd, file_fd, 200, "OK", ".html");
+        cmem_free(memory_tag_string, file_name);
         return;
     }
     cmem_free(memory_tag_string, file_name);
@@ -33,7 +34,7 @@ void random_image_callback(request *req, int client_fd)
     res->status_line.version = http_version_1p1;
     res->status_line.status_code = 200;
     res->status_line.reason_phrase = "OK";
-    res->body.data = body;
+    strcpy(res->body.data, body);
     res->body.body_size = strlen(body);
 
     response_add_header(res, (header){.name = "Content-Type", .value = "text/html"});
@@ -45,6 +46,7 @@ void random_image_callback(request *req, int client_fd)
     send(client_fd, raw, strlen(raw), MSG_NOSIGNAL);
     cmem_free(memory_tag_response, raw);
     cmem_free(memory_tag_string, content_length_str);
+    cmem_free(memory_tag_string, body);
 }
 
 int main()
