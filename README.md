@@ -12,6 +12,10 @@ A high performance webserver made for linux first, should eventually also be abl
 - Bring back server config
 - Uploading/Downloading Files
 
+## Ideas
+- Add a flatten option to certain containers
+- add an optional pool to the linked list.
+
 ## Prerequisites
 
 - make
