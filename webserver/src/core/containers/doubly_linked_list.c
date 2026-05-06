@@ -56,7 +56,7 @@ doubly_linked_list_node *doubly_linked_list_get_node(doubly_linked_list *dll, si
     }
 
     doubly_linked_list_node *curr_node = dll->head;
-    for (size_t i = 0; i < dll->length; i++)
+    for (size_t i = 0; i < index; i++)
     {
         curr_node = curr_node->next;
     }
@@ -69,7 +69,6 @@ void *doubly_linked_list_get(doubly_linked_list *dll, size_t index)
 }
 
 // Insert
-// TODO: SPecial case length 1 insertions
 void doubly_linked_list_push_front(doubly_linked_list *dll, void *data)
 {
     doubly_linked_list_node *new_node = doubly_linked_list_node_create(dll->stride);

@@ -6,21 +6,25 @@
 
 // TODO: Create a load based constructor wrapper
 
-size_t hash_fnv1a(const char *key) {
+size_t hash_fnv1a(const char *key)
+{
     size_t hash = 14695981039346656037ULL;
-    while (*key) {
+    while (*key)
+    {
         hash ^= (unsigned char)*key++;
         hash *= 1099511628211ULL;
     }
     return hash;
 }
 
-hashmap_entry* hashmap_get_entry(hashmap* hmap, size_t index) {
-    return (hashmap_entry*)(hmap->entries + ((sizeof(hashmap_entry) + hmap->stride) * index));
+hashmap_entry *hashmap_get_entry(hashmap *hmap, size_t index)
+{
+    return (hashmap_entry *)(hmap->entries + ((sizeof(hashmap_entry) + hmap->stride) * index));
 }
 
-hashmap* hashmap_create(size_t size, size_t stride, hash_fn hash) {
-    hashmap* hmap = cmem_alloc(memory_tag_hashmap, sizeof(hashmap));
+hashmap *hashmap_create(size_t size, size_t stride, hash_fn hash)
+{
+    hashmap *hmap = cmem_alloc(memory_tag_hashmap, sizeof(hashmap));
 
     hmap->size = size;
     hmap->stride = stride;
@@ -30,10 +34,11 @@ hashmap* hashmap_create(size_t size, size_t stride, hash_fn hash) {
     return hmap;
 }
 
-void hashmap_destroy(hashmap* hmap) {
+void hashmap_destroy(hashmap *hmap)
+{
     for (size_t i = 0; i < hmap->size; i++)
     {
-        hashmap_entry* curr_entry = hashmap_get_entry(hmap, i);
+        hashmap_entry *curr_entry = hashmap_get_entry(hmap, i);
         if (curr_entry->exists)
         {
             cmem_free(memory_tag_hashmap, curr_entry->key);
@@ -43,17 +48,19 @@ void hashmap_destroy(hashmap* hmap) {
     cmem_free(memory_tag_hashmap, hmap);
 }
 
-bool hashmap_set(hashmap* hmap, const char* key, void* element) {
+bool hashmap_set(hashmap *hmap, const char *key, void *element)
+{
     size_t start = hmap->hash(key) % hmap->size;
     for (size_t i = 0; i < hmap->size; i++)
     {
-        hashmap_entry* curr_entry = hashmap_get_entry(hmap, (start + i) % hmap->size);
+        hashmap_entry *curr_entry = hashmap_get_entry(hmap, (start + i) % hmap->size);
         if (curr_entry->exists)
         {
             if (strcmp(curr_entry->key, key) == 0)
             {
                 cmem_mcpy(curr_entry->data, element, hmap->stride);
-                cmem_free(memory_tag_hashmap, curr_entry->key);
+                if (curr_entry->key)
+                    cmem_free(memory_tag_hashmap, curr_entry->key);
                 curr_entry->key = cmem_alloc(memory_tag_hashmap, strlen(key) + 1);
                 strcpy(curr_entry->key, key);
                 curr_entry->exists = true;
@@ -62,7 +69,8 @@ bool hashmap_set(hashmap* hmap, const char* key, void* element) {
             continue;
         }
         cmem_mcpy(curr_entry->data, element, hmap->stride);
-        cmem_free(memory_tag_hashmap, curr_entry->key);
+        if (curr_entry->key)
+            cmem_free(memory_tag_hashmap, curr_entry->key);
         curr_entry->key = cmem_alloc(memory_tag_hashmap, strlen(key) + 1);
         strcpy(curr_entry->key, key);
         curr_entry->exists = true;
@@ -71,11 +79,12 @@ bool hashmap_set(hashmap* hmap, const char* key, void* element) {
     return false;
 }
 
-void* hashmap_get(hashmap* hmap, const char* key) {
+void *hashmap_get(hashmap *hmap, const char *key)
+{
     size_t start = hmap->hash(key) % hmap->size;
     for (size_t i = 0; i < hmap->size; i++)
     {
-        hashmap_entry* curr_entry = hashmap_get_entry(hmap, (start + i) % hmap->size);
+        hashmap_entry *curr_entry = hashmap_get_entry(hmap, (start + i) % hmap->size);
         if (curr_entry->exists)
         {
             if (strcmp(curr_entry->key, key) == 0)
