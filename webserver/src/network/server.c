@@ -28,7 +28,7 @@
 #include <errno.h>
 
 
-#define QUEUE_DEPTH 32
+#define QUEUE_DEPTH 64
 
 server *server_create(server_config* s_conf)
 {
@@ -146,10 +146,17 @@ void server_run(server *s)
     }
 
     // TODO: Submit accepts here
+    for (size_t i = 0; i < 8; i++)
+    {
+        handle_accept_submission(s);
+    }
 
     LOG_INFO("Server listening on port %i.\n\tVisit: http://localhost:%i/index.html", ntohs(addr.sin_port), ntohs(addr.sin_port));
 
-    // TODO: Remember to finish the main even loop
+    while (true)
+    {
+        uring_process_completions(s);
+    }
 
     close(s->socket_fd);
     io_uring_queue_exit(&s->ring);
